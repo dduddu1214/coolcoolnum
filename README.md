@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coolcool Number
 
-## Getting Started
+> 1회부터 최신 회차까지의 데이터를 분석하는 로또 데이터 연구소
 
-First, run the development server:
+예측이 아니다. 과거 데이터를 수집하고 분석해서 번호별 점수와 통계를 보여주는 도구.
+
+## 스택
+
+- Next.js 16 (App Router) + TypeScript + Tailwind v4
+- Supabase (Postgres)
+- Recharts
+- Vercel + Vercel Cron (Fluid Compute)
+
+## 셋업
 
 ```bash
+# 1) 의존성
+npm install
+
+# 2) 환경변수
+cp .env.local.example .env.local
+# Supabase URL, anon key, service role key, CRON_SECRET 채우기
+
+# 3) Supabase 스키마 적용
+# Supabase Studio의 SQL Editor에서 supabase/schema.sql 실행
+
+# 4) 개발 서버
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 5) 최초 전체 수집 (1회 ~ 최신 회차)
+curl "http://localhost:3000/api/sync?full=1&token=$CRON_SECRET"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 라우트
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Path | 설명 |
+| --- | --- |
+| `/` | 대시보드 (최신 회차 / Hot / Cold / Top Score / 추천 조합) |
+| `/numbers` | 1~45 빈도 차트 + 그리드 |
+| `/numbers/[n]` | 번호별 디테일 (점수, 미출현, 페어 TOP 10) |
+| `/pairs` | 공동 출현 TOP 50 |
+| `/draws?round=N` | 회차별 합계/홀짝/구간 분석 |
+| `/api/sync` | 신규 회차만 수집 + 통계 재계산 (Cron) |
+| `/api/sync?full=1` | 1회부터 전체 재수집 |
+| `/api/recommend` | 추천 조합 5개 JSON |
+| `/api/content/hot` | 핫 넘버 콘텐츠 (Threads/X용) |
+| `/api/content/cold` | 콜드 넘버 콘텐츠 |
+| `/api/content/top-score` | AI 점수 TOP 7 |
+| `/api/content/weekly` | 최신 회차 주간 리포트 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 자동 수집
 
-## Learn More
+`vercel.json`에 토요일 22:00 KST (= UTC 13:00) 크론 등록됨.
+신규 회차만 저장하고 통계를 다시 계산한다.
 
-To learn more about Next.js, take a look at the following resources:
+## 점수 알고리즘 (v1)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+score = norm(totalCount)    * 0.20
+      + norm(recent20Count) * 0.35
+      + norm(recent50Count) * 0.20
+      + norm(missingRounds) * 0.15
+      + norm(pairSum)       * 0.10
+      → 0~100 정규화
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+PRD의 곱셈 표기는 0 한 항으로 전체가 0이 되는 문제가 있어 가중합으로 구현.
