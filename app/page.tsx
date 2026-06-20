@@ -36,6 +36,9 @@ export default async function Dashboard() {
   const top = [...stats]
     .sort((a, b) => Number(b.score) - Number(a.score))
     .slice(0, 7);
+  const unlikely = [...stats]
+    .sort((a, b) => Number(a.score) - Number(b.score))
+    .slice(0, 7);
 
   const scored: ScoredNumber[] = stats.map((s) => ({
     number: s.number,
@@ -80,8 +83,8 @@ export default async function Dashboard() {
         </div>
       </Card>
 
-      {/* 핫/콜드/탑스코어 */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* 핫/콜드/탑스코어/회피 */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card title="🔥 Hot Numbers" subtitle="최근 20회">
           <BallRow nums={hot.map((s) => s.number)} />
         </Card>
@@ -95,6 +98,12 @@ export default async function Dashboard() {
           <BallRow nums={top.map((s) => s.number)} />
           <p className="mt-3 text-xs text-zinc-500">
             최고점: {top[0]?.number}번 ({Number(top[0]?.score).toFixed(1)}점)
+          </p>
+        </Card>
+        <Card title="🚫 안 나올 것 같은 번호" subtitle="최저 점수">
+          <BallRow nums={unlikely.map((s) => s.number)} />
+          <p className="mt-3 text-xs text-zinc-500">
+            최저점: {unlikely[0]?.number}번 ({Number(unlikely[0]?.score).toFixed(1)}점)
           </p>
         </Card>
       </div>
